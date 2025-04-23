@@ -65,7 +65,7 @@ python main.py --ratio=0.1 --dataset=hiv --pretrain
 
 Our proposed MolPeg are able to achieve significant improvements conbined with several static and dynamic data pruning methods.
 
-<img src="results.png" style="zoom:50%;" >
+<img src="results.png">
 
 Data pruning trajectory given by downstream performance:
 
