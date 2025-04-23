@@ -95,7 +95,7 @@ def smiles_to_graph(s, y):
 
 
 class PygPCQM4Mv2Dataset(InMemoryDataset):
-    def __init__(self, root = '/data/chendingshuo/', smiles2graph = smiles_to_graph, transform=None, pre_transform = None):
+    def __init__(self, root = '/data/', smiles2graph = smiles_to_graph, transform=None, pre_transform = None):
         '''
             Pytorch Geometric PCQM4Mv2 dataset object
                 - root (str): the dataset folder will be located at root/pcqm4m_kddcup2021

@@ -13,8 +13,10 @@ from itertools import repeat, chain
 from rdkit.Chem import AllChem, Descriptors
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
 from torch_geometric.data import Data, InMemoryDataset, download_url, extract_zip
+from torch_geometric.nn import radius_graph
 from transformers import RobertaModel, RobertaTokenizer
 from tqdm import tqdm
+
 import pdb
 
 
@@ -244,7 +246,7 @@ def create_standardized_mol_id(smiles):
 #todo: prune
 class MoleculeDataset(InMemoryDataset):
     def __init__(self, root, input_ids=None, mask=None, roberta=None, dataset='zinc250k',  transform=None,
-                 pre_transform=None, pre_filter=None, empty=False):
+                 pre_transform=None, pre_filter=None, empty=False, pkl=None):
 
         self.root = root
         self.dataset = dataset
@@ -254,6 +256,7 @@ class MoleculeDataset(InMemoryDataset):
         self.input_ids = input_ids
         self.mask = mask
         self.roberta = roberta
+        self.pkl = pkl
 
         super(MoleculeDataset, self).__init__(root, transform, pre_transform, pre_filter)
 
@@ -415,12 +418,15 @@ class MoleculeDataset(InMemoryDataset):
                 data = mol_to_graph_data_obj_simple(rdkit_mol)
                 # manually add mol id
                 data.id = torch.tensor([i])  # id here is the index of the mol in the dataset
-                fingerprint = np.array(GetMorganFingerprintAsBitVect(rdkit_mol, 2, nBits=1024))
-                data.fingerprint = torch.tensor(fingerprint, dtype = torch.float).unsqueeze(0)
+                # fingerprint = np.array(GetMorganFingerprintAsBitVect(rdkit_mol, 2, nBits=1024))
+                # data.fingerprint = torch.tensor(fingerprint, dtype = torch.float).unsqueeze(0)
                 # ===================================================================
                 data.y = torch.tensor([labels[i]])
                 data_list.append(data)
                 data_smiles_list.append(smiles_list[i])
+                data.positions = torch.tensor(self.pkl[i]['atom_pos'])
+                radius_edge_index = radius_graph(data.positions, r=5, loop=False)
+                data.radius_edge_index = radius_edge_index
 
 
         elif self.dataset == 'muv':
@@ -457,13 +463,14 @@ class MoleculeDataset(InMemoryDataset):
                 # Chem.SanitizeMol(rdkit_mol,
                 #                  sanitizeOps=Chem.SanitizeFlags.SANITIZE_KEKULIZE)
                 data = mol_to_graph_data_obj_simple(rdkit_mol)
-                fingerprint = np.array(GetMorganFingerprintAsBitVect(rdkit_mol, 2, nBits=1024))
-                data.fingerprint = torch.tensor(fingerprint, dtype = torch.float).unsqueeze(0)
+                # fingerprint = np.array(GetMorganFingerprintAsBitVect(rdkit_mol, 2, nBits=1024))
+                # data.fingerprint = torch.tensor(fingerprint, dtype = torch.float).unsqueeze(0)
                 # manually add mol id
                 data.id = torch.tensor(
                     [i])  # id here is the index of the mol in
                 # the dataset
                 data.y = torch.tensor(labels[i, :])
+                data.positions = torch.tensor(self.pkl[i]['atom_pos'])
                 data_list.append(data)
                 data_smiles_list.append(smiles_list[i])
 
@@ -886,19 +893,12 @@ def get_largest_mol(mol_list):
 def create_all_datasets():
 
     downstream_dir = [
-        'bbbp',
-        'bace',
-        'tox21',
-        'sider',
-        'clintox',
-        'hiv',
-        'muv',
-        'toxcast'
+        'pcba',
     ]
 
     for dataset_name in downstream_dir:
         print(dataset_name)
-        root = "../../datasets/molecule_net/" + dataset_name
+        root = "/molecule_net/" + dataset_name
         print('root\t', root)
         os.makedirs(root + "/processed", exist_ok=True)
         
@@ -919,13 +919,12 @@ def create_all_datasets():
             smiles_list, rdkit_mol_objs, labels = _load_toxcast_dataset(root+'/raw/'+dataset_name+'.csv')
         elif dataset_name == 'sider':
             smiles_list, rdkit_mol_objs, labels = _load_sider_dataset(root+'/raw/'+dataset_name+'.csv')
+        elif dataset_name == 'pcba':
+            smiles_list, rdkit_mol_objs, labels = _load_pcba_dataset(root+'/raw/'+dataset_name+'.csv')
 
         for i, string in enumerate(smiles_list):
             if not isinstance(string, str):print('===== {} ====='.format(i))
         smiles_list = list(filter(None, smiles_list)) 
-        dicts = tokenizer(smiles_list, max_length=510, return_tensors="pt", padding='max_length', truncation=True)
-        input_ids = dicts['input_ids']
-        mask = dicts['attention_mask']
         # roberta_data = TensorDataset(input_ids, mask)
         # loader = DataLoader(roberta_data, batch_size=128, shuffle=False)
         # smiles_repr = None
@@ -945,15 +944,20 @@ def create_all_datasets():
         #         smiles_repr = torch.cat((smiles_repr, tensor_d), dim = 0)
                 
 
-        dataset = MoleculeDataset(root, dataset=dataset_name, input_ids=input_ids, mask=mask)
+        dataset = MoleculeDataset(root, dataset=dataset_name, pkl=result_obj)
         print(dataset)
 
 
 
 # test MoleculeDataset object
+import pickle as pkl
 if __name__ == "__main__":
-    device = torch.device('cuda:7') if torch.cuda.is_available() else torch.device('cpu')
-    tokenizer = RobertaTokenizer.from_pretrained("seyonec/PubChem10M_SMILES_BPE_450k")
+    result_hiv_filepath = '/home/wangding/data/datasets/hiv_pcba/hiv_.pkl'
+    result_pcba_filepath = '/home/wangding/data/datasets/hiv_pcba/pcba_.pkl'
+    result_obj = pkl.load(open(result_pcba_filepath, 'rb'))
+    print('Read Done')
+    # device = torch.device('cuda:7') if torch.cuda.is_available() else torch.device('cpu')
+    # tokenizer = RobertaTokenizer.from_pretrained("seyonec/PubChem10M_SMILES_BPE_450k")
     # Geomberta = RobertaModel.from_pretrained("../GeomBerta_15").to(device)
     create_all_datasets()
 

@@ -15,7 +15,7 @@ class EarlyTrain(CoresetMethod):
     Core code for training related to coreset selection methods when pre-training is required.
     '''
 
-    def __init__(self, dst_train, args, fraction=0.5, random_seed=None, num_tasks=None, epochs=200,
+    def __init__(self, dst_train, args, fraction=0.5, random_seed=None, num_tasks=None, epochs=1,
                   dst_test=None, device=None, **kwargs):
         super().__init__(dst_train, args, fraction, random_seed, num_tasks, device)
         self.epochs = epochs

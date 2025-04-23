@@ -4,11 +4,12 @@ parser = argparse.ArgumentParser()
 # ========= Seed and basic info ==========
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--runseed', type=int, default=1)
-parser.add_argument('--device', type=int, default=5)
+parser.add_argument('--device', type=int, default=0)
 
 # ========= Hyper-parameters ===========
-parser.add_argument('--dataset', type=str, default='pcba')
+parser.add_argument('--dataset', type=str, default='hiv')
 parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--pre_epochs', type=int, default=1)
 parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--decay', type=float, default=0)
 parser.add_argument('--batch_size', type=int, default=256)
@@ -32,7 +33,14 @@ parser.add_argument('--dropout_ratio', type=float, default=0.5)
 parser.add_argument('--graph_pooling', type=str, default='mean')
 parser.add_argument('--JK', type=str, default='last')
 parser.add_argument('--output_model_dir', type=str, default='./model_saved/')
+parser.add_argument('--input_model_dir', type=str, default='/saved_model/model.pth')
 parser.add_argument('--property', type=str, default='lumo', help='Regression Target')
+
+# ==== SchNet ======
+parser.add_argument("--num_filters", type=int, default=128)
+parser.add_argument("--num_interactions", type=int, default=6)
+parser.add_argument("--num_gaussians", type=int, default=51)
+parser.add_argument("--cutoff", type=float, default=10)
 
 # ========= Program viewing =========== 
 parser.add_argument('--eval_train', dest='eval_train', action='store_true')
@@ -52,6 +60,12 @@ parser.add_argument('--uncertainty', default="Entropy", help="specifiy uncertant
 parser.add_argument('--pretrain', action='store_true')
 parser.set_defaults(finetune_pruning=False)
 parser.set_defaults(pretrain=False)
+
+# ========= Soft Pruning Parameter ========
+parser.add_argument('--method', type=str, default='molpeg')
+parser.add_argument('--ratio',default=0.8, type=float)
+parser.add_argument('--delta',default=0.875, type=float)
+parser.add_argument('--ema_beta',default=0.5, type=float)
 
 args = parser.parse_args()
 print('arguments\t', args)

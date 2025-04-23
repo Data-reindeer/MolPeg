@@ -165,3 +165,46 @@ def plot_distribution(dataset):
     plt.hist(cnts, bins=50, range=(0,50))
     plt.savefig("./pcba_dis.png")
     return cnts
+
+def update_model(model_A, model_B, beta=0.5):
+    for param_A, param_B in zip(model_A.parameters(), model_B.parameters()):
+        tmp = param_B.data
+        param_B.data = beta * param_B.data + (1 - beta) * param_A.data
+
+def load_model(pretrained_path, finetune_model):
+    pretrained_dict = torch.load(pretrained_path, map_location=torch.device('cuda:0'))
+    new_state_dict = {}
+    pretrained_keys = list(pretrained_dict.keys())
+    model_keys = list(finetune_model.state_dict().keys())
+
+    for key in pretrained_keys:
+        # Tips: Since GraphCL model saved with gnn. as prefix, we use key[4:] to recognize the correct keys
+        new_key = key[4:]
+        if new_key in model_keys:
+            new_state_dict[new_key] = pretrained_dict[key]
+    
+    # pdb.set_trace()
+    # print(new_state_dict.keys())
+    # print(model_keys)
+    
+    finetune_model.load_state_dict(new_state_dict, strict=False)
+    return finetune_model
+
+def chose_mol(dataset):
+    import matplotlib.pyplot as plt
+    small_idxs, large_idxs = [], []
+    num_atoms = []
+    for i, mol in enumerate(tqdm(dataset)):
+        num = mol.num_nodes
+        if num < 9:
+            small_idxs.append(i)
+        elif num > 17 and num < 22: 
+            large_idxs.append(i)
+        num_atoms.append(num)
+        
+    plt.hist(num_atoms, bins=50, alpha=0.5, color='green')
+    plt.savefig('img/{}_stat.pdf'.format(args.dataset))
+    plt.title('Statistics')
+    # np.save('./small.npy', small_idxs)
+    # np.save('./large.npy', large_idxs)
+    return small_idxs, large_idxs
