@@ -5,7 +5,9 @@
 <h5 align="center">
 
 
-  ![GitHub stars](https://img.shields.io/github/stars/Data-reindeer/MolPeg.svg) ![](https://img.shields.io/badge/license-MIT-blue) 
+   ![GitHub Repo stars](https://img.shields.io/github/stars/Data-reindeer/MolPeg) ![](https://img.shields.io/badge/license-CC_BY_4.0-blue) 
+
+
 
 </h5>
 
